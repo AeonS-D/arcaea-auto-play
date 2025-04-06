@@ -1,6 +1,12 @@
 ARCAEA自动游玩项目，为arcaea-sap大改版
 可以在arcaea的安装包中提取aff文件
 
+免责声明：
+
+该项目仅供学习交流，关于恶意使用引起的纠纷与该项目无关
+
+
+
 关于修改项目：
 
    1.加入对谱面文件中timinggroup()的支持（实际就是创建临时的谱面文件用正则表达式删去timinggroup()及空格，简单粗暴）
@@ -22,7 +28,7 @@ ARCAEA自动游玩项目，为arcaea-sap大改版
 
 关于注意事项
 
-   1.最好使用python3.11，我之前用3.13报错
+   1.最好使用python3.11，用3.13可能报错
 
    2.安装目录下requirements依赖包
 
@@ -32,11 +38,13 @@ ARCAEA自动游玩项目，为arcaea-sap大改版
 
     https://github.com/Genymobile/scrcpy/releases/
 
-   4.配置文件中为小米平板5的各项参数，理论上来说为11寸平板通用
+   4，安装Android debug bridge，并配置好相应环境
 
-   5.关于各个点的坐标可能如下：
+   5.配置文件中为小米平板5的各项参数，理论上来说为11寸平板通用
+
+   6.关于各个点的坐标可能如下：
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
-   原项目作者说忘记是不是这样了，如果这用这个坐标不行拉issue后再看看
+   原项目作者说忘记是不是这样了，如果这用这个坐标不行拉issue以后再看看
 
    
 
@@ -48,8 +56,9 @@ ARCAEA自动游玩项目，为arcaea-sap大改版
   
 
 关于bug：
+
   1.auto先生还无法理论风暴byd
   ![IMG20250406124001](https://github.com/user-attachments/assets/45b457b3-4707-4d84-90c1-4382f995508b)
-  但是并不打算修，也许随缘？不会真的有yyw想用这个理论风暴吧
+  但是并不打算修，也许随缘？不会真的有人想用这个理论风暴吧？又没啥用，拿来爬爬梯子得（笑
 
   2.ttf byd暂时无法读取，有时间修
