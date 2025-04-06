@@ -1,0 +1,32 @@
+{
+  "global": {
+    "bottom_left": [
+      713,
+      1350
+    ],
+    "top_left": [
+      660,
+      660
+    ],
+    "top_right": [
+      1868,
+      660
+    ],
+    "bottom_right": [
+      1872,
+      1350
+    ],
+    "chart_path": "D:\\BIN\\\u5de5\u5177\\arcaea\\arcaea\u81ea\u52a8\u6253\u6b4c\\beat\\3.aff"
+  },
+  "mode1": {
+    "delay": -1.65
+  },
+  "mode2": {
+    "delay": 5.58,
+    "retry_button": [
+      1327,
+      816
+    ]
+  },
+  "current_mode": 2
+}
