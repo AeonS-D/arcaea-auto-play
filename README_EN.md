@@ -50,7 +50,8 @@ Install Android Debug Bridge and configure environment variables.
 Config defaults to Xiaomi Pad 5 parameters (theoretically compatible with 11" tablets).
 
 6. **Touch Coordinates Reference**
-https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300
+<img width="2670" height="1200" alt="image" src="https://github.com/user-attachments/assets/c8ccea6b-6c39-47b7-84a4-12fe33297645" />
+
 Original author notes: "Uncertain if this remains accurate - open issues if problematic."
 
 ## Planned Features
