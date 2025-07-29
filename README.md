@@ -1,5 +1,7 @@
 ARCAEA自动游玩项目，为arcaea-sap大改版
 可以在arcaea的安装包中提取aff文件
+Click to switch English
+https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 
 ## 免责声明：
 
