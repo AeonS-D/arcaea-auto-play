@@ -12,7 +12,9 @@ This project is intended for educational and research purposes only. The project
 
 1. **Added support for `timinggroup()` in chart files**  
    Implemented by creating temporary chart files and using regex to remove `timinggroup()` and whitespace (simple but effective).
-1.5 Added real support for timinggroup in v2.0，so we don’t need 1. anyone anymore
+
+2. **Added real support for timinggroup in v2.0，so we don’t need 1. anyone anymore**
+
 3. **Dual Operation Modes**  
    - `Mode1`: Manual simulation start - triggers touch simulation when notes approach judgment line.  
      *Do not manually adjust delay; script auto-calibrates. Ideal for world mode.*  
