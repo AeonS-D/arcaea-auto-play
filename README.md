@@ -1,7 +1,7 @@
 ARCAEA自动游玩项目，为arcaea-sap大改版
 可以在arcaea的安装包中提取aff文件
 
-Click to switch English
+Click here to switch English
 https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 
 ## 免责声明：
@@ -60,12 +60,6 @@ https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 
   
 
-## 关于bug：
 
-  + 1.auto先生还无法理论风暴byd
-  ![IMG20250406124001](https://github.com/user-attachments/assets/45b457b3-4707-4d84-90c1-4382f995508b)
-  但是并不打算修，也许随缘？不会真的有人想用这个理论风暴吧？又没啥用，拿来爬爬梯子得（笑
+不会真的有人想用这个理论ttf吧？又没啥用，拿来爬爬梯子得（笑
 
-  + 2.ttf byd暂时无法读取，有时间修
-
-  + 风暴byd无法用mode1游玩，有时间修
