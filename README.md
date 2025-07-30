@@ -13,6 +13,7 @@ https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 ## 关于修改项目：
 
    + 1.加入对谱面文件中timinggroup()的支持（实际就是创建临时的谱面文件用正则表达式删去timinggroup()及空格，简单粗暴）
+   + 1.5 在2.0版本新增了timinggroup的支持，我们不需要用第一条了
   
    + 2.加入两种模式
   
