@@ -15,7 +15,7 @@ This project is intended for educational and research purposes only. The project
 
 2. **Dual Operation Modes**  
    - `Mode1`: Manual simulation start - triggers touch simulation when notes approach judgment line.  
-     *Do not manually adjust delay; script auto-calibrates. Ideal for score climbing.*  
+     *Do not manually adjust delay; script auto-calibrates. Ideal for world mode.*  
    - `Mode2`: Auto simulation start - triggers after tapping "Retry" in pause menu with configurable delay.  
      *Network/device variability may affect consistency. Delay adjustable in config.*
 
