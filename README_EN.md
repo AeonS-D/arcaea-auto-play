@@ -21,7 +21,7 @@ This project is intended for educational and research purposes only. The project
 
 3. **Memory Function**  
    Coordinates are now preserved between sessions.  
-   **⚠️ Do NOT delete config files - may cause crashes (intentionally unpatched).**
+   **⚠️ Do NOT delete config files - may cause crashes (yeah i'm lazy,so i didnt want to fix it).**
 
 4. **Parameter Customization**  
    All settings can be modified via configuration file.
