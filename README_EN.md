@@ -36,7 +36,7 @@ This project is intended for educational and research purposes only. The project
 ## Requirements & Setup
 
 1. **Python 3.11 Recommended**  
-   Compatible with 3.11 only (tested; fails on 3.13+).
+   Compatible with 3.11 only (tested; fails on 3.13).
 
 2. **Install Dependencies**  
    ```bash
