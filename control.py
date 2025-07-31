@@ -22,6 +22,7 @@ class DeviceController:
     device_width: int
     device_height: int
     collector_running: bool
+    immediate_send_lock: threading.Lock
 
     def __init__(self, serial: str | None = None, port: int = 27188, push_server: bool = True, server_dir: str = '.') -> None:
         self.serial = serial
@@ -52,22 +53,20 @@ class DeviceController:
             'max_size=2768',
         ]
         self.server_process = subprocess.Popen(command_line)
-        # 由于我们指定了audio=false，所以这只有两个socket
-        # 其实本来audio streaming可以用于对齐时钟，不过可惜只支持Android 11及以上
         self.video_socket, _ = skt.accept()
         self.control_socket, _ = skt.accept()
         subprocess.run(
             [*adb, 'reverse', '--remove', f'localabstract:scrcpy_{self.session_id}']
-        )  # 移除创建的adb tunnel，我们不再需要它了
+        )
 
         self.collector_running = True
+        self.immediate_send_lock = threading.Lock() 
 
         def streaming_decoder():
-            '''解码手机端传回的视频数据，得到视频的尺寸'''
             codec = av.CodecContext.create('h264', 'r')
             try:
                 while self.collector_running:
-                    _pts = self.video_socket.recv(8)  # unused
+                    _pts = self.video_socket.recv(8)
                     size = int.from_bytes(self.video_socket.recv(4), 'big')
                     packets = codec.parse(self.video_socket.recv(size))
                     for packet in packets:
@@ -84,9 +83,6 @@ class DeviceController:
                 self.collector_running = False
 
         def ctrlmsg_receiver():
-            '''另一个垃圾收集器
-            收集的是scrcpy-server传来的控制事件的信息，
-            比如屏幕旋转事件等'''
             try:
                 while self.collector_running:
                     _msg_type = self.control_socket.recv(1)
@@ -96,9 +92,7 @@ class DeviceController:
                 print(e.with_traceback(None))
                 self.collector_running = False
 
-        _device_name = self.video_socket.recv(64)  # sendDeviceMeta
-
-        # streamer.writeVideoHeader(device.getScreenInfo().getVideoSize())
+        _device_name = self.video_socket.recv(64)
         codec_id = self.video_socket.recv(4).decode()
         self.device_width = int.from_bytes(self.video_socket.recv(4), 'big')
         self.device_height = int.from_bytes(self.video_socket.recv(4), 'big')
@@ -115,7 +109,7 @@ class DeviceController:
         self.control_socket.send(
             struct.pack(
                 '!bbQiiHHHII',
-                2,  # type: SC_CONTROL_MSG_TYPE_INJECT_TOUCH_EVENT
+                2,  # SC_CONTROL_MSG_TYPE_INJECT_TOUCH_EVENT
                 action.value,
                 pointer_id,
                 x,
