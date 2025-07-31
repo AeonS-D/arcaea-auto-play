@@ -48,7 +48,6 @@ https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 
    + 6.关于各个点的坐标可能如下：
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
-   原项目作者说忘记是不是这样了，如果这用这个坐标不行拉issue以后再看看
 
    
 
