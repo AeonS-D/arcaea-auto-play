@@ -15,15 +15,12 @@ This project is intended for educational and research purposes only. The project
 
 2. **Added real support for timinggroup in v2.0，so we don’t need 1. anyone anymore**
 
-3. **Dual Operation Modes**  
-   - `Mode1`: Manual simulation start - triggers touch simulation when notes approach judgment line.  
+3. **New Modes**   Manual simulation start - triggers touch simulation when notes approach judgment line.  
      *Do not manually adjust delay; script auto-calibrates. Ideal for world mode.*  
-   - `Mode2`: Auto simulation start - triggers after tapping "Retry" in pause menu with configurable delay.  
-     *Network/device variability may affect consistency. Delay adjustable in config.*
 
 4. **Memory Function**  
    Coordinates are now preserved between sessions.  
-   **⚠️ Do NOT delete config files - may cause crashes (yeah i'm lazy,so i didnt want to fix it).**
+   **⚠️ Do NOT delete config files - may cause crashes (yeah im lazy,so i didnt want to fix it).**
 
 5. **Parameter Customization**  
    All settings can be modified via configuration file.
