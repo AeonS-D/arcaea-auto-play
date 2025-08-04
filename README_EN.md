@@ -1,6 +1,6 @@
 # ARCAEA Autoplay Project - Major Update for arcaea-sap
 
-Extracts `.aff` chart files directly from Arcaea installation packages.
+Extracts `.aff` beatmaps directly from Arcaea installation packages.
 
 ## Disclaimer:
 
@@ -10,8 +10,8 @@ This project is intended for educational and research purposes only. The project
 
 ## Project Modifications:
 
-1. **Added support for `timinggroup()` in chart files**  
-   Implemented by creating temporary chart files and using regex to remove `timinggroup()` and whitespace (simple but effective).
+1. **Added support for `timinggroup()` in beatmaps**  
+   Implemented by creating temporary beatmaps and using regex to remove `timinggroup()` and whitespace (simple but effective).
 
 2. **Added real support for timinggroup in v2.0，so we don’t need 1. anyone anymore**
 
