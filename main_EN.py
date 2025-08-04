@@ -19,9 +19,7 @@ DEFAULT_CONFIG = {
         "bottom_right": (2376, 1350),
         "chart_path": "chart.txt"
     },
-    "mode1": {"delay": 2.0},
-    "mode2": {"delay": 3.0, "retry_button": (600, 600)},
-    "current_mode": 1
+    "delay": 2.0
 }
 
 time_offset = 0.0
@@ -39,6 +37,7 @@ def choose_aff_file():
     return file_path
 
 def extract_delay_from_aff(input_path):
+
     with open(input_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
@@ -58,13 +57,35 @@ def extract_delay_from_aff(input_path):
                     pass
         elif stripped_line.startswith('arc(') and stripped_line.endswith(');'):
             arc_content = stripped_line[4:-2]
-            parts = arc_content.split(',')
-            if parts:
+            parts = [p.strip() for p in arc_content.split(',')]
+            
+            if len(parts) >= 10:
+                skyline_boolean = parts[-1].lower() == 'true'
+                
+                if not skyline_boolean:
+                    try:
+                        time_ms = int(parts[0])
+                        delay = -time_ms / 1000
+                        break
+                    except (ValueError, IndexError):
+                        pass
+                else:
+                    arctap_match = re.search(r'\[arctap\((\d+)\)\]', stripped_line)
+                    if arctap_match:
+                        try:
+                            time_ms = int(arctap_match.group(1))
+                            delay = -time_ms / 1000
+                            break
+                        except ValueError:
+                            pass
+        elif 'arctap(' in stripped_line:
+            arctap_match = re.search(r'arctap\((\d+)\)', stripped_line)
+            if arctap_match:
                 try:
-                    time_ms = int(parts[0])
+                    time_ms = int(arctap_match.group(1))
                     delay = -time_ms / 1000
                     break
-                except (ValueError, IndexError):
+                except ValueError:
                     pass
       
     return delay
@@ -85,17 +106,23 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
             config = json.load(f)
-            if "retry_button" in config.get("mode1", {}):
-                del config["mode1"]["retry_button"]
+            # Handle legacy config
+            if "mode1" in config:
+                config["delay"] = config["mode1"]["delay"]
+                del config["mode1"]
+                if "mode2" in config:
+                    del config["mode2"]
+                if "current_mode" in config:
+                    del config["current_mode"]
                 save_config(config)
-            base_delay = config[f"mode{config['current_mode']}"]["delay"]
+            base_delay = config["delay"]
             return config
     except FileNotFoundError:
-        base_delay = DEFAULT_CONFIG[f"mode{DEFAULT_CONFIG['current_mode']}"]["delay"]
+        base_delay = DEFAULT_CONFIG["delay"]
         return DEFAULT_CONFIG
     except Exception as e:
         print(f"Failed to load config: {e}")
-        base_delay = DEFAULT_CONFIG[f"mode{DEFAULT_CONFIG['current_mode']}"]["delay"]
+        base_delay = DEFAULT_CONFIG["delay"]
         return DEFAULT_CONFIG
 
 def save_config(config):
@@ -105,7 +132,6 @@ def save_config(config):
 def show_config(config):
     params = config["global"]
     print("\nCurrent Config:")
-    print(f"Mode: Mode {config['current_mode']}")
     print(f"Base Delay: {base_delay}s")
     print(f"Bottom Track: {params['bottom_left']} → {params['bottom_right']}")
     print(f"Sky Line: {params['top_left']} → {params['top_right']}")
@@ -126,14 +152,12 @@ def input_coord(prompt, default):
 
 def quick_edit_params(config):
     global base_delay
-    params = {**config["global"], **config[f"mode{config['current_mode']}"]}
+    params = {**config["global"]}
     
     print("\nQuick Parameter Edit:")
     print("[1] Edit Coordinates")
     print("[2] Base Delay")
     print("[3] Chart Path")
-    if config['current_mode'] == 2:
-        print("[4] Retry Button Coordinates")
     print("Press the corresponding number key to edit, other keys to skip...")
 
     key = wait_key(5)
@@ -150,7 +174,7 @@ def quick_edit_params(config):
         new_delay = input(f"Base Delay (current {base_delay}): ")
         if new_delay:
             try:
-                config[f"mode{config['current_mode']}"]['delay'] = float(new_delay)
+                config['delay'] = float(new_delay)
                 base_delay = float(new_delay)
                 save_config(config)
             except ValueError:
@@ -163,10 +187,6 @@ def quick_edit_params(config):
             print(f"Chart path updated to: {new_path}")
         else:
             print("No file selected, keeping original value")
-    elif key == '4' and config['current_mode'] == 2:
-        config["mode2"]["retry_button"] = input_coord("Retry Button (x,y)", config["mode2"]["retry_button"])
-        save_config(config)
-        print("Retry button coordinates updated!")
 
 def run_automation(config):
     global base_delay
@@ -175,15 +195,15 @@ def run_automation(config):
     try:
         delay = extract_delay_from_aff(chart_path)
         if delay is not None:
-            config['mode1']['delay'] = delay
-            print(f"Mode1 delay adjusted based on AFF file: {delay}s")
+            config['delay'] = delay
+            print(f"Delay adjusted based on AFF file: {delay}s")
         else:
             print("Warning: No valid initial delay found, using config value")
     except Exception as e:
         print(f"Failed to process file: {e}")
         return
 
-    base_delay = config[f"mode{config['current_mode']}"]["delay"]
+    base_delay = config["delay"]
     
     print("\n" + "="*40)
     print(f"current delay: {base_delay}s")
@@ -207,13 +227,9 @@ def run_automation(config):
 
     ctl = DeviceController(server_dir='.')
     
-    if config['current_mode'] == 2:
-        ctl.tap(*config["mode2"]["retry_button"])
-    
-    if config['current_mode'] == 1:
-        print("\n[Mode1] Ready, press Enter twice to start...")
-        flush_input()
-        msvcrt.getch()
+    print("\nReady, press Enter twice to start...")
+    flush_input()
+    msvcrt.getch()
 
     start_time = time.time() + base_delay
     print('[INFO] Auto play started')
@@ -234,21 +250,8 @@ if __name__ == '__main__':
     config = load_config()
 
     print("="*40)
-    print("Arcaea Auto Play Script v2.0") 
+    print("Arcaea Auto Play Script v2.1") 
     print("="*40)
-
-    print(f"\nCurrent Mode: Mode {config['current_mode']}")
-    print("[1] Switch to Mode 1")
-    print("[2] Switch to Mode 2")
-    print("Press number key to switch within 3 seconds, other keys to skip...")
-    
-    key = wait_key(3)
-    if key in ('1', '2'):
-        new_mode = int(key)
-        config["current_mode"] = new_mode
-        save_config(config)
-        base_delay = config[f"mode{new_mode}"]["delay"]
-        print(f"\nSwitched to Mode {new_mode}!")
 
     quick_edit_params(config)
 
