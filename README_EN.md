@@ -1,4 +1,4 @@
-# ARCAEA Autoplay Project - Major Update for arcaea-sap
+# ARCAEA Autoplay Project - code comes from arcaea-sap
 
 Extracts `.aff` beatmaps directly from Arcaea installation packages.
 
