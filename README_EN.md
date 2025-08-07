@@ -48,7 +48,8 @@ Install Android Debug Bridge and configure environment variables.
 5. **Device Presets**
 Config defaults to Xiaomi Pad 5 parameters (theoretically compatible with 11" tablets).
 
-6. **Touch Coordinates Reference**
+
+7. **Touch Coordinates Reference**
 <img width="2670" height="1200" alt="image" src="https://github.com/user-attachments/assets/c8ccea6b-6c39-47b7-84a4-12fe33297645" />
 
 
@@ -56,3 +57,6 @@ Config defaults to Xiaomi Pad 5 parameters (theoretically compatible with 11" ta
 Dynamic delay compensation during touch simulation (theoretical)
 
 GUI implementation (exploratory)
+
+## Lodgs
+Early this morning at 1:28 AM on August 8, 2025,Mr.auto succeeful finished PM Max-0 Tempestissimo BYD,huge congratulations, huge congratulations!![Screenshot_2025-08-08-01-28-57-496_moe inf arc 1](https://github.com/user-attachments/assets/c4dc92bc-131e-43b6-827e-b4dbd1fa516f)
