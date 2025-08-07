@@ -58,3 +58,8 @@ https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 
 不会真的有人想用这个理论ttf吧？又没啥用，拿来爬爬梯子得（笑
 
+## 日志
+25年8月8日凌晨1点28分，奥托先生成功理论byd风暴，可喜可贺，可喜可贺
+
+
+![Screenshot_2025-08-08-01-28-57-496_moe inf arc 1](https://github.com/user-attachments/assets/d2f0e3dc-563f-410f-9f3a-28dcc7f93256)
