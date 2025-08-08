@@ -37,7 +37,6 @@ def choose_aff_file():
     return file_path
 
 def extract_delay_from_aff(input_path):
-
     with open(input_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
@@ -46,7 +45,18 @@ def extract_delay_from_aff(input_path):
 
     for line in lines:
         stripped_line = line.strip()
-        if stripped_line.startswith('(') and stripped_line.endswith(');'):
+        
+        if stripped_line.startswith('hold(') and stripped_line.endswith(');'):
+            parts = stripped_line[5:-2].split(',')
+            if parts:
+                try:
+                    time_ms = int(parts[0])
+                    delay = -time_ms / 1000
+                    break
+                except (ValueError, IndexError):
+                    pass
+        
+        elif stripped_line.startswith('(') and stripped_line.endswith(');'):
             parts = stripped_line[1:-2].split(',')
             if parts:
                 try:
@@ -55,6 +65,7 @@ def extract_delay_from_aff(input_path):
                     break
                 except (ValueError, IndexError):
                     pass
+        
         elif stripped_line.startswith('arc(') and stripped_line.endswith(');'):
             arc_content = stripped_line[4:-2]
             parts = [p.strip() for p in arc_content.split(',')]
@@ -78,6 +89,7 @@ def extract_delay_from_aff(input_path):
                             break
                         except ValueError:
                             pass
+        
         elif 'arctap(' in stripped_line:
             arctap_match = re.search(r'arctap\((\d+)\)', stripped_line)
             if arctap_match:
@@ -250,7 +262,7 @@ if __name__ == '__main__':
     config = load_config()
 
     print("="*40)
-    print("Arcaea Auto Play Script v2.1") 
+    print("Arcaea Auto Play Script v2.2") 
     print("="*40)
 
     quick_edit_params(config)

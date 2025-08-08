@@ -2,7 +2,15 @@ import numpy as np
 import math
 
 from chart import Chart, Arc, Tap, Hold, TimingGroup
-from algo.algo_base import TouchAction, TouchEvent
+from algo.algo_base import TouchAction
+
+class TouchEvent:
+    def __init__(self, position, action, pointer, alpha=1.0):
+        self.position = position 
+        self.pos = position  
+        self.action = action
+        self.pointer = pointer
+        self.alpha = alpha
 
 
 class CoordConv:
@@ -37,17 +45,40 @@ class CoordConv:
 
 def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
     result = {}
+    arc_chains = {} 
 
     def ins(ms: int, ev: TouchEvent):
         if ms not in result:
             result[ms] = []
         result[ms].append(ev)
 
-    current_arctap_id = 1000
+    current_arctap_id = 1000  
+    arc_search_range = 20
+    prev_arcs = {}       
+    active_arcs = {}        
+    active_holds = {}         
+    used_pointers = set()   
+    next_arcs = {}          
 
-    arc_search_range = 20 
-
-    prev_arcs = {}
+    def is_overlap_with_arc(note_tick, note_x, note_y, threshold=0.05):
+  
+        for pointer_id, arc_info in prev_arcs.items():
+            start, end = arc_info['start'], arc_info['end']
+            
+            if start <= note_tick <= end and end > start:
+                t = (note_tick - start) / (end - start)
+                arc_x, arc_y, _ = arc_info['easing'].value(
+                    (arc_info['start_x'], arc_info['start_y'], 1),
+                    (arc_info['end_x'], arc_info['end_y'], 1),
+                    t
+                )
+                
+                if note_y == 0:
+                    if abs(note_x - arc_x) < threshold:
+                        return True, pointer_id
+                elif distance_of((note_x, note_y), (arc_x, arc_y)) < threshold:
+                    return True, pointer_id
+        return False, None
 
     def process_note(note, group_properties=None):
         nonlocal current_arctap_id
@@ -70,10 +101,13 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
             
             return x_rot, y_rot
         
+        anglex = group_properties.get('anglex', 0)
+        angley = group_properties.get('angley', 0)
+        
         if isinstance(note, Arc):
-            anglex = group_properties.get('anglex', 0)
-            angley = group_properties.get('angley', 0)
-            
+            if note.start == note.end:
+                return
+                
             start_x, start_y = rotate_point(note.start_x, note.start_y, anglex, angley)
             end_x, end_y = rotate_point(note.end_x, note.end_y, anglex, angley)
             
@@ -81,17 +115,22 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
             end = (end_x, end_y, 1)
             delta = note.end - note.start
             pointer_id = note.color + 5
+            used_pointers.add(pointer_id) 
             
             connect_prev = False
             if pointer_id in prev_arcs:
                 prev_arc = prev_arcs[pointer_id]
                 time_gap = note.start - prev_arc['end']
                 
-                if time_gap < 50 and distance_of(
+                if time_gap <= 1:
+                    connect_prev = True
+                elif time_gap < 50 and distance_of(
                     (prev_arc['end_x'], prev_arc['end_y']),
                     (note.start_x, note.start_y)
                 ) < 100:
                     connect_prev = True
+                    
+                if connect_prev:
                     for t in range(prev_arc['end'] - arc_search_range, prev_arc['end'] + arc_search_range + 1):
                         if t in result:
                             for idx, ev in enumerate(result[t]):
@@ -99,14 +138,40 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                                     result[t].pop(idx)
                                     break
             
-            if note.trace_arc:
+            note.easing_info = {
+                'easing': note.easing,
+                'start': start,
+                'end': end,
+                'start_x': note.start_x,
+                'start_y': note.start_y,
+                'end_x': note.end_x,
+                'end_y': note.end_y,
+                'anglex': anglex,
+                'angley': angley
+            }
+            
+            shared_taps = []
+            if not note.trace_arc and note.taps:
+                for tap in note.taps:
+                    if tap.tick == note.start or tap.tick == note.end:
+                        shared_taps.append(tap)
+            
+            if note.trace_arc or shared_taps:
                 for tap in note.taps:
                     t = (tap.tick - note.start) / delta
                     px, py, _ = note.easing.value(start, end, t)
                     px, py = converter(px, py)
-                    ins(tap.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, current_arctap_id))
-                    ins(tap.tick + 2, TouchEvent((round(px), round(py)), TouchAction.UP, current_arctap_id))
+                    is_overlap = False
+                    if tap.tick == note.start or tap.tick == note.end:
+                        if tap in shared_taps:
+                            ins(tap.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, pointer_id))
+                            ins(tap.tick + 1, TouchEvent((round(px), round(py)), TouchAction.UP, pointer_id))
+                            continue
+                    tap_pointer = current_arctap_id
+                    ins(tap.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, tap_pointer))
+                    ins(tap.tick + 10, TouchEvent((round(px), round(py)), TouchAction.UP, tap_pointer))
                     current_arctap_id += 1
+                    used_pointers.add(tap_pointer)
                     if current_arctap_id > 2000:
                         current_arctap_id = 1000
             else:
@@ -115,23 +180,60 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                     px, py = converter(px, py)
                     ins(note.start, TouchEvent((round(px), round(py)), TouchAction.DOWN, pointer_id))
                 
+                sample_points = []
                 min_step = 10 
-                max_step = 30 
-                step_size = max(min_step, min(max_step, delta // 50))
+                if delta > 100:
+                    steps = max(5, delta // 20)
+                    for i in range(steps + 1):
+                        sample_points.append(note.start + int(i * delta / steps))
+                else:
+
+                    steps = max(2, math.ceil(delta / min_step))
+                    for i in range(steps + 1):
+                        sample_points.append(note.start + int(i * delta / steps))
                 
-                for tick in range(note.start + step_size, note.end, step_size):
-                    t = (tick - note.start) / delta
+                for tick in sample_points:
+                    t = max(0.0, min(1.0, (tick - note.start) / delta))
                     px, py, _ = note.easing.value(start, end, t)
                     
                     if anglex != 0 or angley != 0:
                         px, py = rotate_point(px, py, anglex, angley)
                     
                     px, py = converter(px, py)
-                    ins(tick, TouchEvent((round(px), round(py)), TouchAction.MOVE, pointer_id))
+                    
+                    if tick != note.start:
+                        ins(tick, TouchEvent((round(px), round(py)), TouchAction.MOVE, pointer_id))
                 
-                px, py, _ = note.easing.value(start, end, 1)
-                px, py = converter(px, py)
-                ins(note.end, TouchEvent((round(px), round(py)), TouchAction.UP, pointer_id))
+                has_next_arc = False
+                next_arc = None
+                for other_note in chart.notes:
+                    if isinstance(other_note, Arc) and not other_note.trace_arc:
+                        if other_note.color + 5 == pointer_id:
+                            time_gap = other_note.start - note.end
+                            if time_gap <= 1:
+                                has_next_arc = True
+                                next_arc = other_note
+                                break
+                
+                if not has_next_arc:
+                    px, py, _ = note.easing.value(start, end, 1)
+                    px, py = converter(px, py)
+                    ins(note.end, TouchEvent((round(px), round(py)), TouchAction.UP, pointer_id))
+                    if pointer_id in active_arcs:
+                        del active_arcs[pointer_id]
+                    if pointer_id in next_arcs:
+                        del next_arcs[pointer_id]
+                else:
+                    if next_arc and abs(next_arc.start - note.end) <= 1:
+                        next_arcs[pointer_id] = next_arc
+                        next_start_x, next_start_y = rotate_point(next_arc.start_x, next_arc.start_y, anglex, angley)
+                        px, py = converter(next_start_x, next_start_y)
+                    else:
+                        px, py, _ = note.easing.value(start, end, 1)
+                        px, py = converter(px, py)
+                    
+                    ins(note.end, TouchEvent((round(px), round(py)), TouchAction.MOVE, pointer_id))
+                    active_arcs[pointer_id] = (note.end, (round(px), round(py)))
                 
                 prev_arcs[pointer_id] = {
                     'start': note.start,
@@ -139,24 +241,53 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                     'start_x': note.start_x,
                     'end_x': note.end_x,
                     'start_y': note.start_y,
-                    'end_y': note.end_y
+                    'end_y': note.end_y,
+                    'easing': note.easing
                 }
+        
         elif isinstance(note, Tap):
-            px, py = converter(-0.75 + note.track * 0.5, 0)
-            ins(note.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, note.track))
-            ins(note.tick + 20, TouchEvent((round(px), round(py)), TouchAction.UP, note.track))
+            note_x, note_y = -0.75 + note.track * 0.5, 0
+            px, py = converter(note_x, note_y)
+            
+            is_overlap, arc_pointer = is_overlap_with_arc(note.tick, note_x, note_y)
+            
+            if is_overlap and arc_pointer is not None:
+                tap_pointer = note.track + 300
+                used_pointers.add(tap_pointer)
+                
+                ins(note.tick - 2, TouchEvent((round(px), round(py)), TouchAction.DOWN, tap_pointer))
+                ins(note.tick, TouchEvent((round(px), round(py)), TouchAction.UP, tap_pointer))
+                
+                if arc_pointer in active_arcs:
+                    last_tick, last_pos = active_arcs[arc_pointer]
+                    ins(note.tick + 1, TouchEvent(last_pos, TouchAction.MOVE, arc_pointer))
+            else:
+                ins(note.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, note.track))
+                ins(note.tick + 20, TouchEvent((round(px), round(py)), TouchAction.UP, note.track))
+                used_pointers.add(note.track)
+        
         elif isinstance(note, Hold):
-            px, py = converter(-0.75 + note.track * 0.5, 0)
-            ins(note.start, TouchEvent((round(px), round(py)), TouchAction.DOWN, note.track))
+            note_x, note_y = -0.75 + note.track * 0.5, 0
+            is_overlap_start, arc_pointer_start = is_overlap_with_arc(note.start, note_x, note_y)
+            is_overlap_end, arc_pointer_end = is_overlap_with_arc(note.end, note_x, note_y)
+            
+            px, py = converter(note_x, note_y)
+            hold_pointer = note.track
+            used_pointers.add(hold_pointer)
+
+            ins(note.start, TouchEvent((round(px), round(py)), TouchAction.DOWN, hold_pointer))
             
             if group_properties.get('fadingholds', False):
                 duration = note.end - note.start
                 for t in range(note.start + 50, note.end, 50):
                     alpha = 1.0 - (t - note.start) / duration
                     fade_pointer = note.track + 100
+                    used_pointers.add(fade_pointer) 
                     ins(t, TouchEvent((round(px), round(py)), TouchAction.MOVE, fade_pointer, alpha))
             
-            ins(note.end, TouchEvent((round(px), round(py)), TouchAction.UP, note.track))
+            ins(note.end, TouchEvent((round(px), round(py)), TouchAction.UP, hold_pointer))
+            
+            active_holds[note.track] = (note.start, (round(px), round(py)))
 
     def process_timing_group(group):
         group_properties = group.properties
@@ -171,6 +302,29 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
             process_timing_group(note)
         else:
             process_note(note)
+
+    max_time = max(result.keys()) if result else 0
+
+    for pointer_id, (last_tick, last_pos) in active_arcs.items():
+        ins(max_time + 50, TouchEvent(last_pos, TouchAction.UP, pointer_id))
+
+    for track, (start_tick, last_pos) in active_holds.items():
+        ins(max_time + 50, TouchEvent(last_pos, TouchAction.UP, track))
+    
+    for pointer_id in used_pointers:
+        is_down = False
+        last_pos = (0, 0)
+        for t in sorted(result.keys(), reverse=True):
+            for ev in result[t]:
+                if ev.pointer == pointer_id:
+                    if ev.action == TouchAction.DOWN or ev.action == TouchAction.MOVE:
+                        is_down = True
+                        last_pos = ev.position if hasattr(ev, 'position') else (0, 0)
+                    break
+            if is_down:
+                break
+        if is_down:
+            ins(max_time + 100, TouchEvent(last_pos, TouchAction.UP, pointer_id))
     
     return result
 
