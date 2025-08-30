@@ -20,7 +20,7 @@ This project is intended for educational and research purposes only. The project
 
 4. **Memory Function**  
    Coordinates are now preserved between sessions.  
-   **⚠️ Do NOT delete config files - may cause crashes (yeah im lazy,so i didnt want to fix it).**
+   **⚠️ Do NOT delete config files - may cause crashes (yeah im lazy,so i didnt want to fix it).If there is no configuration file in the package, download it in code and place it in the script root.**
 
 5. **Parameter Customization**  
    All settings can be modified via configuration file.
