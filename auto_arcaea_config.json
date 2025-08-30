@@ -2,7 +2,7 @@
   "global": {
     "bottom_left": [
       713,
-      1350
+      1340
     ],
     "top_left": [
       660,
@@ -14,25 +14,9 @@
     ],
     "bottom_right": [
       1872,
-      1350
+      1340
     ],
-    "chart_path": "D:/BIN/\u5de5\u5177/arcaea/arcaea\u81ea\u52a8\u6253\u6b4c - \u526f\u672c/beat/\u7ea2\u8682\u8681.aff"
+    "chart_path": "D:/BIN/\u5de5\u5177/arcaea/arcaea\u81ea\u52a8\u6253\u6b4c/beat/vector.aff"
   },
-  "mode1": {
-    "delay": 2.0
-  },
-  "mode2": {
-    "delay": 3.0,
-    "retry_button": [
-      1290,
-      818
-    ]
-  },
-  "mode3": {
-    "delay": 2.0,
-    "small_p_num": 40,
-    "far_num": 2,
-    "lost_num": 5
-  },
-  "current_mode": 1
+  "delay": 2.0
 }
