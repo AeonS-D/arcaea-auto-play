@@ -49,8 +49,10 @@ Install Android Debug Bridge and configure environment variables.
 Config defaults to Xiaomi Pad 5 parameters (theoretically compatible with 11" tablets).
 
 
-7. **Touch Coordinates Reference**
+6. **Touch Coordinates Reference**
 <img width="2670" height="1200" alt="image" src="https://github.com/user-attachments/assets/c8ccea6b-6c39-47b7-84a4-12fe33297645" />
+
+7. Using Windows PowerShell on Windows 11 may lead to some strange bugs. Please switch to the default console (CMD) to run the script.
 
 
 ## Planned Features
