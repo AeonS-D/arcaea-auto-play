@@ -44,6 +44,8 @@ https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
    + 6.关于各个点的坐标可能如下：
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
 
+   + 7.win11下，使用windows powershell可能会导致一些奇奇怪怪的bug，请更换默认控制台cmd使用脚本
+
    
 
 ## 关于将要加入的功能：
