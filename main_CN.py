@@ -37,6 +37,7 @@ def choose_aff_file():
     return file_path
 
 def extract_delay_from_aff(input_path):
+
     with open(input_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
@@ -45,18 +46,7 @@ def extract_delay_from_aff(input_path):
 
     for line in lines:
         stripped_line = line.strip()
-        
-        if stripped_line.startswith('hold(') and stripped_line.endswith(');'):
-            parts = stripped_line[5:-2].split(',')
-            if parts:
-                try:
-                    time_ms = int(parts[0])
-                    delay = -time_ms / 1000
-                    break
-                except (ValueError, IndexError):
-                    pass
-        
-        elif stripped_line.startswith('(') and stripped_line.endswith(');'):
+        if stripped_line.startswith('(') and stripped_line.endswith(');'):
             parts = stripped_line[1:-2].split(',')
             if parts:
                 try:
@@ -65,7 +55,6 @@ def extract_delay_from_aff(input_path):
                     break
                 except (ValueError, IndexError):
                     pass
-        
         elif stripped_line.startswith('arc(') and stripped_line.endswith(');'):
             arc_content = stripped_line[4:-2]
             parts = [p.strip() for p in arc_content.split(',')]
@@ -89,7 +78,6 @@ def extract_delay_from_aff(input_path):
                             break
                         except ValueError:
                             pass
-        
         elif 'arctap(' in stripped_line:
             arctap_match = re.search(r'arctap\((\d+)\)', stripped_line)
             if arctap_match:
@@ -234,22 +222,8 @@ def run_automation(config):
                    config["global"]["bottom_right"])
     
     ans = solve(chart, conv)
-    sorted_ans = sorted(ans.items())
-    if not sorted_ans:
-        print("\n[错误] 未生成任何触控事件，请检查以下配置：\n"
-              f"- 谱面路径: {config['global']['chart_path']}\n"
-              f"- 延迟补偿: {base_delay}s\n")
-        return
-    ans_iter = iter(sorted_ans)
-    try:
-        try:
-            ms, evs = next(ans_iter)
-        except StopIteration:
-            print("[警告] 事件序列意外终止")
-            return
-    except StopIteration:
-        print("[警告] 事件序列意外终止")
-        return
+    ans_iter = iter(sorted(ans.items()))
+    ms, evs = next(ans_iter)
 
     ctl = DeviceController(server_dir='.')
     
@@ -276,7 +250,7 @@ if __name__ == '__main__':
     config = load_config()
 
     print("="*40)
-    print("Arcaea自动打歌脚本 v2.2") 
+    print("Arcaea自动打歌脚本 v2.2.1") 
     print("="*40)
 
     quick_edit_params(config)

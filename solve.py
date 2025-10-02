@@ -52,7 +52,7 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
         result[ms].append(ev)
 
     current_arctap_id = 1000  
-    arc_search_range = 5  # 使用5ms搜索范围
+    arc_search_range = 5 
 
     def process_note(note, group_properties=None):
         nonlocal current_arctap_id
@@ -90,7 +90,6 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
             delta = note.end - note.start
             
             if note.trace_arc:
-                # trace_arc 使用独立的指针ID，不会干扰普通Arc
                 for tap in note.taps:
                     t = (tap.tick - note.start) / delta
                     px, py, _ = note.easing.value(start, end, t)
@@ -101,15 +100,12 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                     if current_arctap_id > 2000:
                         current_arctap_id = 1000
             else:
-                # 普通Arc使用固定的指针ID
                 pointer_id = note.color + 5
-                
-                # 简化开始逻辑
+               
                 px, py, _ = note.easing.value(start, end, 0)
                 px, py = converter(px, py)
                 ins(note.start, TouchEvent((round(px), round(py)), TouchAction.DOWN, pointer_id))
                 
-                # 链接两个挨得很近的arc（开始部分）
                 for tck in range(note.start - arc_search_range, note.start + arc_search_range + 1):
                     if tck not in result:
                         continue
@@ -123,7 +119,6 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                         continue
                     break
 
-                # 处理Arc上的tap
                 if note.taps:
                     for tap in note.taps:
                         t = (tap.tick - note.start) / delta
@@ -136,7 +131,6 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                         if current_arctap_id > 2000:
                             current_arctap_id = 1000
                 
-                # 添加移动点
                 sample_points = []
                 min_step = 10 
                 if delta > 100:
@@ -160,12 +154,10 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                     if tick != note.start:
                         ins(tick, TouchEvent((round(px), round(py)), TouchAction.MOVE, pointer_id))
                 
-                # 每个Arc结束后都发送UP事件
                 px, py, _ = note.easing.value(start, end, 1)
                 px, py = converter(px, py)
                 ins(note.end, TouchEvent((round(px), round(py)), TouchAction.UP, pointer_id))
                 
-                # 链接两个相邻的arc（结束部分）
                 for tck in range(note.end - arc_search_range, note.end + arc_search_range + 1):
                     if tck not in result:
                         continue
