@@ -3,6 +3,7 @@ import time
 import msvcrt
 import threading
 import re
+import sys
 from pathlib import Path
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
@@ -17,7 +18,6 @@ DEFAULT_CONFIG = {
         "top_left": (171, 300),
         "top_right": (2376, 300),
         "bottom_right": (2376, 1350),
-        "chart_path": "chart.txt"
     },
     "delay": 2.0
 }
@@ -25,6 +25,8 @@ DEFAULT_CONFIG = {
 time_offset = 0.0
 base_delay = 0.0
 time_lock = threading.Lock()
+input_listener_active = False
+automation_started = False
 
 def choose_aff_file():
     root = Tk()
@@ -37,7 +39,6 @@ def choose_aff_file():
     return file_path
 
 def extract_delay_from_aff(input_path):
-
     with open(input_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
@@ -46,7 +47,18 @@ def extract_delay_from_aff(input_path):
 
     for line in lines:
         stripped_line = line.strip()
-        if stripped_line.startswith('(') and stripped_line.endswith(');'):
+        
+        if stripped_line.startswith('hold(') and stripped_line.endswith(');'):
+            parts = stripped_line[5:-2].split(',')
+            if parts:
+                try:
+                    time_ms = int(parts[0])
+                    delay = -time_ms / 1000
+                    break
+                except (ValueError, IndexError):
+                    pass
+        
+        elif stripped_line.startswith('(') and stripped_line.endswith(');'):
             parts = stripped_line[1:-2].split(',')
             if parts:
                 try:
@@ -55,6 +67,7 @@ def extract_delay_from_aff(input_path):
                     break
                 except (ValueError, IndexError):
                     pass
+        
         elif stripped_line.startswith('arc(') and stripped_line.endswith(');'):
             arc_content = stripped_line[4:-2]
             parts = [p.strip() for p in arc_content.split(',')]
@@ -78,6 +91,7 @@ def extract_delay_from_aff(input_path):
                             break
                         except ValueError:
                             pass
+        
         elif 'arctap(' in stripped_line:
             arctap_match = re.search(r'arctap\((\d+)\)', stripped_line)
             if arctap_match:
@@ -98,7 +112,9 @@ def wait_key(timeout):
     start = time.time()
     while time.time() - start < timeout:
         if msvcrt.kbhit():
-            return msvcrt.getch().decode()
+            key = msvcrt.getch().decode()
+            flush_input()
+            return key
     return None
 
 def load_config():
@@ -106,12 +122,9 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
             config = json.load(f)
-            # 处理旧版本配置
             if "mode1" in config:
                 config["delay"] = config["mode1"]["delay"]
                 del config["mode1"]
-                if "mode2" in config:
-                    del config["mode2"]
                 if "current_mode" in config:
                     del config["current_mode"]
                 save_config(config)
@@ -156,8 +169,7 @@ def quick_edit_params(config):
     
     print("\n参数快捷编辑：")
     print("[1] 编辑坐标")
-    print("[2] 基础延迟")
-    print("[3] 谱面路径")
+    print("[2] 谱面路径")
     print("按对应数字键编辑，其他键跳过...")
 
     key = wait_key(5)
@@ -171,15 +183,6 @@ def quick_edit_params(config):
         save_config(config)
         print("坐标已更新！")
     elif key == '2':
-        new_delay = input(f"基础延迟（当前 {base_delay}）：")
-        if new_delay:
-            try:
-                config['delay'] = float(new_delay)
-                base_delay = float(new_delay)
-                save_config(config)
-            except ValueError:
-                print("输入无效，保持原值")
-    elif key == '3':
         new_path = choose_aff_file()
         if new_path:
             config["global"]["chart_path"] = new_path
@@ -188,8 +191,55 @@ def quick_edit_params(config):
         else:
             print("未选择文件，保持原值")
 
+def incremented():
+    global time_offset
+    with time_lock:
+        time_offset += 0.05
+    print(f"[微调] 提前0.05秒，当前偏移: {time_offset:.3f}秒")
+
+def decremented():
+    global time_offset
+    with time_lock:
+        time_offset -= 0.05
+    print(f"[微调] 延后0.05秒，当前偏移: {time_offset:.3f}秒")
+
+def reset_time_offset():
+    global time_offset
+    with time_lock:
+        time_offset = 0.0
+    print(f"[微调] 偏移已重置: {time_offset:.3f}秒")
+
+def start_input_listener():
+    def input_listener():
+        global input_listener_active, automation_started
+        while input_listener_active:
+            try:
+                if not automation_started:
+                    time.sleep(0.1)
+                    continue
+                    
+                user_input = input().strip().lower()
+                
+                if user_input == '+':
+                    incremented()
+                elif user_input == '-':
+                    decremented()
+                elif user_input == '0':
+                    reset_time_offset()
+                else:
+                    print(f"[提示] 未知命令: {user_input}，可用命令: + (提前), - (延后), 0 (重置)")
+            except EOFError:
+                break
+            except Exception as e:
+                print(f"[输入监听错误] {e}")
+                break
+    
+    listener_thread = threading.Thread(target=input_listener, daemon=True)
+    listener_thread.start()
+    return listener_thread
+
 def run_automation(config):
-    global base_delay
+    global base_delay, time_offset, input_listener_active, automation_started
 
     chart_path = config["global"]["chart_path"]
     try:
@@ -204,9 +254,14 @@ def run_automation(config):
         return
 
     base_delay = config["delay"]
+    time_offset = 0.0
     
     print("\n" + "="*40)
     print(f"当前基础延迟: {base_delay}s")
+    print("微调控制:")
+    print("  输入 + 然后回车: 提前0.05秒")
+    print("  输入 - 然后回车: 延后0.05秒") 
+    print("  输入 0 然后回车: 重置微调偏移")
     print("="*40)
     show_config(config)
     
@@ -222,35 +277,64 @@ def run_automation(config):
                    config["global"]["bottom_right"])
     
     ans = solve(chart, conv)
-    ans_iter = iter(sorted(ans.items()))
-    ms, evs = next(ans_iter)
+    sorted_ans = sorted(ans.items())
+    if not sorted_ans:
+        print("\n[错误] 未生成任何触控事件，请检查以下配置：\n"
+              f"- 谱面路径: {config['global']['chart_path']}\n"
+              f"- 延迟补偿: {base_delay}s\n")
+        return
+    ans_iter = iter(sorted_ans)
+    try:
+        ms, evs = next(ans_iter)
+    except StopIteration:
+        print("[警告] 事件序列意外终止")
+        return
 
     ctl = DeviceController(server_dir='.')
     
+    input_listener_active = True
+    start_input_listener()
+    
     print("\n准备就绪，按两次回车键以开始...")
     flush_input()
-    msvcrt.getch()
-
+    input()
+    
+    automation_started = True
+    
     start_time = time.time() + base_delay
     print('[INFO] 自动打歌启动')
+    print('[INFO] 微调功能已启用，可在下方输入命令进行微调')
     
     try:
-        while True:
-            now = (time.time() - start_time) * 1000
+        while input_listener_active:
+            with time_lock:
+                current_offset = time_offset
+                
+            now = (time.time() - start_time + current_offset) * 1000
+            
             if now >= ms:  
                 for ev in evs:
                     ctl.touch(*ev.pos, ev.action, ev.pointer)
-                ms, evs = next(ans_iter)
+                try:
+                    ms, evs = next(ans_iter)
+                except StopIteration:
+                    break
+            else:
+                time.sleep(0.001)
+                
     except StopIteration:
         print('[INFO] 自动打歌结束')
     except Exception as e:
         print(f'[ERROR] 执行出错: {e}')
+    finally:
+        input_listener_active = False
+        automation_started = False
 
 if __name__ == '__main__':
     config = load_config()
 
     print("="*40)
-    print("Arcaea自动打歌脚本 v2.2.1") 
+    print("Arcaea自动打歌脚本 v2.3") 
     print("="*40)
 
     quick_edit_params(config)

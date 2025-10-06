@@ -3,6 +3,7 @@ import time
 import msvcrt
 import threading
 import re
+import sys
 from pathlib import Path
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
@@ -17,7 +18,6 @@ DEFAULT_CONFIG = {
         "top_left": (171, 300),
         "top_right": (2376, 300),
         "bottom_right": (2376, 1350),
-        "chart_path": "chart.txt"
     },
     "delay": 2.0
 }
@@ -25,19 +25,20 @@ DEFAULT_CONFIG = {
 time_offset = 0.0
 base_delay = 0.0
 time_lock = threading.Lock()
+input_listener_active = False
+automation_started = False
 
 def choose_aff_file():
     root = Tk()
     root.withdraw()
     file_path = askopenfilename(
-        title="select aff file",
-        filetypes=[("Beatmap files", "*.aff")]
+        title="Select AFF Chart File",
+        filetypes=[("Chart files", "*.aff")]
     )
     root.destroy()
     return file_path
 
 def extract_delay_from_aff(input_path):
-
     with open(input_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
@@ -46,7 +47,18 @@ def extract_delay_from_aff(input_path):
 
     for line in lines:
         stripped_line = line.strip()
-        if stripped_line.startswith('(') and stripped_line.endswith(');'):
+        
+        if stripped_line.startswith('hold(') and stripped_line.endswith(');'):
+            parts = stripped_line[5:-2].split(',')
+            if parts:
+                try:
+                    time_ms = int(parts[0])
+                    delay = -time_ms / 1000
+                    break
+                except (ValueError, IndexError):
+                    pass
+        
+        elif stripped_line.startswith('(') and stripped_line.endswith(');'):
             parts = stripped_line[1:-2].split(',')
             if parts:
                 try:
@@ -55,6 +67,7 @@ def extract_delay_from_aff(input_path):
                     break
                 except (ValueError, IndexError):
                     pass
+        
         elif stripped_line.startswith('arc(') and stripped_line.endswith(');'):
             arc_content = stripped_line[4:-2]
             parts = [p.strip() for p in arc_content.split(',')]
@@ -78,6 +91,7 @@ def extract_delay_from_aff(input_path):
                             break
                         except ValueError:
                             pass
+        
         elif 'arctap(' in stripped_line:
             arctap_match = re.search(r'arctap\((\d+)\)', stripped_line)
             if arctap_match:
@@ -98,7 +112,9 @@ def wait_key(timeout):
     start = time.time()
     while time.time() - start < timeout:
         if msvcrt.kbhit():
-            return msvcrt.getch().decode()
+            key = msvcrt.getch().decode()
+            flush_input()
+            return key
     return None
 
 def load_config():
@@ -106,12 +122,9 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
             config = json.load(f)
-            # Handle legacy config
             if "mode1" in config:
                 config["delay"] = config["mode1"]["delay"]
                 del config["mode1"]
-                if "mode2" in config:
-                    del config["mode2"]
                 if "current_mode" in config:
                     del config["current_mode"]
                 save_config(config)
@@ -141,7 +154,7 @@ def input_coord(prompt, default):
     while True:
         try:
             flush_input()
-            print(prompt + f"（current {default}）：", end="", flush=True)
+            print(prompt + f" (current {default}): ", end="", flush=True)
             raw = input().strip()
             if not raw:
                 return default
@@ -156,8 +169,7 @@ def quick_edit_params(config):
     
     print("\nQuick Parameter Edit:")
     print("[1] Edit Coordinates")
-    print("[2] Base Delay")
-    print("[3] Chart Path")
+    print("[2] Chart Path")
     print("Press the corresponding number key to edit, other keys to skip...")
 
     key = wait_key(5)
@@ -171,15 +183,6 @@ def quick_edit_params(config):
         save_config(config)
         print("Coordinates updated!")
     elif key == '2':
-        new_delay = input(f"Base Delay (current {base_delay}): ")
-        if new_delay:
-            try:
-                config['delay'] = float(new_delay)
-                base_delay = float(new_delay)
-                save_config(config)
-            except ValueError:
-                print("Invalid input, keeping original value")
-    elif key == '3':
         new_path = choose_aff_file()
         if new_path:
             config["global"]["chart_path"] = new_path
@@ -188,8 +191,55 @@ def quick_edit_params(config):
         else:
             print("No file selected, keeping original value")
 
+def incremented():
+    global time_offset
+    with time_lock:
+        time_offset += 0.05
+    print(f"[Fine-tune] Advance 0.05s, current offset: {time_offset:.3f}s")
+
+def decremented():
+    global time_offset
+    with time_lock:
+        time_offset -= 0.05
+    print(f"[Fine-tune] Delay 0.05s, current offset: {time_offset:.3f}s")
+
+def reset_time_offset():
+    global time_offset
+    with time_lock:
+        time_offset = 0.0
+    print(f"[Fine-tune] Offset reset: {time_offset:.3f}s")
+
+def start_input_listener():
+    def input_listener():
+        global input_listener_active, automation_started
+        while input_listener_active:
+            try:
+                if not automation_started:
+                    time.sleep(0.1)
+                    continue
+                    
+                user_input = input().strip().lower()
+                
+                if user_input == '+':
+                    incremented()
+                elif user_input == '-':
+                    decremented()
+                elif user_input == '0':
+                    reset_time_offset()
+                else:
+                    print(f"[Hint] Unknown command: {user_input}, available commands: + (advance), - (delay), 0 (reset)")
+            except EOFError:
+                break
+            except Exception as e:
+                print(f"[Input listener error] {e}")
+                break
+    
+    listener_thread = threading.Thread(target=input_listener, daemon=True)
+    listener_thread.start()
+    return listener_thread
+
 def run_automation(config):
-    global base_delay
+    global base_delay, time_offset, input_listener_active, automation_started
 
     chart_path = config["global"]["chart_path"]
     try:
@@ -204,9 +254,14 @@ def run_automation(config):
         return
 
     base_delay = config["delay"]
+    time_offset = 0.0
     
     print("\n" + "="*40)
-    print(f"current delay: {base_delay}s")
+    print(f"Current base delay: {base_delay}s")
+    print("Fine-tuning control:")
+    print("  Enter + then Enter: Advance 0.05s")
+    print("  Enter - then Enter: Delay 0.05s") 
+    print("  Enter 0 then Enter: Reset fine-tuning offset")
     print("="*40)
     show_config(config)
     
@@ -222,35 +277,64 @@ def run_automation(config):
                    config["global"]["bottom_right"])
     
     ans = solve(chart, conv)
-    ans_iter = iter(sorted(ans.items()))
-    ms, evs = next(ans_iter)
+    sorted_ans = sorted(ans.items())
+    if not sorted_ans:
+        print("\n[Error] No touch events generated, please check:")
+        print(f"- Chart path: {config['global']['chart_path']}")
+        print(f"- Delay compensation: {base_delay}s")
+        return
+    ans_iter = iter(sorted_ans)
+    try:
+        ms, evs = next(ans_iter)
+    except StopIteration:
+        print("[Warning] Event sequence terminated unexpectedly")
+        return
 
     ctl = DeviceController(server_dir='.')
     
+    input_listener_active = True
+    start_input_listener()
+    
     print("\nReady, press Enter twice to start...")
     flush_input()
-    msvcrt.getch()
-
+    input()
+    
+    automation_started = True
+    
     start_time = time.time() + base_delay
     print('[INFO] Auto play started')
+    print('[INFO] Fine-tuning enabled, enter commands below to adjust')
     
     try:
-        while True:
-            now = (time.time() - start_time) * 1000
+        while input_listener_active:
+            with time_lock:
+                current_offset = time_offset
+                
+            now = (time.time() - start_time + current_offset) * 1000
+            
             if now >= ms:  
                 for ev in evs:
                     ctl.touch(*ev.pos, ev.action, ev.pointer)
-                ms, evs = next(ans_iter)
+                try:
+                    ms, evs = next(ans_iter)
+                except StopIteration:
+                    break
+            else:
+                time.sleep(0.001)
+                
     except StopIteration:
         print('[INFO] Auto play finished')
     except Exception as e:
         print(f'[ERROR] Execution error: {e}')
+    finally:
+        input_listener_active = False
+        automation_started = False
 
 if __name__ == '__main__':
     config = load_config()
 
     print("="*40)
-    print("Arcaea Auto Play Script v2.2.1") 
+    print("Arcaea Auto Play Script v2.3") 
     print("="*40)
 
     quick_edit_params(config)
