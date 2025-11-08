@@ -194,14 +194,14 @@ def quick_edit_params(config):
 def incremented():
     global time_offset
     with time_lock:
-        time_offset += 0.02
-    print(f"[微调] 提前0.02秒，当前偏移: {time_offset:.3f}秒")
+        time_offset += 0.01
+    print(f"[微调] 提前0.01秒，当前偏移: {time_offset:.3f}秒")
 
 def decremented():
     global time_offset
     with time_lock:
-        time_offset -= 0.02
-    print(f"[微调] 延后0.02秒，当前偏移: {time_offset:.3f}秒")
+        time_offset -= 0.01
+    print(f"[微调] 延后0.01秒，当前偏移: {time_offset:.3f}秒")
 
 def reset_time_offset():
     global time_offset
@@ -259,8 +259,8 @@ def run_automation(config):
     print("\n" + "="*40)
     print(f"当前基础延迟: {base_delay}s")
     print("微调控制:")
-    print("  输入 + 然后回车: 提前0.05秒")
-    print("  输入 - 然后回车: 延后0.05秒") 
+    print("  输入 + 然后回车: 提前0.01秒")
+    print("  输入 - 然后回车: 延后0.01秒") 
     print("  输入 0 然后回车: 重置微调偏移")
     print("="*40)
     show_config(config)

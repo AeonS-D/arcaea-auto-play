@@ -194,14 +194,14 @@ def quick_edit_params(config):
 def incremented():
     global time_offset
     with time_lock:
-        time_offset += 0.05
-    print(f"[Fine-tune] Advance 0.05s, current offset: {time_offset:.3f}s")
+        time_offset += 0.01
+    print(f"[Fine-tune] Advance 0.01s, current offset: {time_offset:.3f}s")
 
 def decremented():
     global time_offset
     with time_lock:
-        time_offset -= 0.05
-    print(f"[Fine-tune] Delay 0.05s, current offset: {time_offset:.3f}s")
+        time_offset -= 0.01
+    print(f"[Fine-tune] Delay 0.01s, current offset: {time_offset:.3f}s")
 
 def reset_time_offset():
     global time_offset
@@ -259,8 +259,8 @@ def run_automation(config):
     print("\n" + "="*40)
     print(f"Current base delay: {base_delay}s")
     print("Fine-tuning control:")
-    print("  Enter + then Enter: Advance 0.05s")
-    print("  Enter - then Enter: Delay 0.05s") 
+    print("  Enter + then Enter: Advance 0.01s")
+    print("  Enter - then Enter: Delay 0.01s") 
     print("  Enter 0 then Enter: Reset fine-tuning offset")
     print("="*40)
     show_config(config)
