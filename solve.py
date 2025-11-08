@@ -52,10 +52,12 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
         result[ms].append(ev)
 
     current_arctap_id = 1000  
-    arc_search_range = 5  # 使用5ms搜索范围
+    arc_search_range = 5 
+
+    zero_length_arcs = {}
 
     def process_note(note, group_properties=None):
-        nonlocal current_arctap_id
+        nonlocal current_arctap_id, zero_length_arcs
         group_properties = group_properties or {}
         
         if group_properties.get('noinput', False):
@@ -90,7 +92,6 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
             delta = note.end - note.start
             
             if note.trace_arc:
-                # trace_arc 使用独立的指针ID，不会干扰普通Arc
                 for tap in note.taps:
                     t = (tap.tick - note.start) / delta
                     px, py, _ = note.easing.value(start, end, t)
@@ -101,15 +102,28 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                     if current_arctap_id > 2000:
                         current_arctap_id = 1000
             else:
-                # 普通Arc使用固定的指针ID
                 pointer_id = note.color + 5
                 
-                # 简化开始逻辑
+                compensation_needed = False
+                compensation_x, compensation_y = 0, 0
+                
+                if note.start in zero_length_arcs:
+                    zero_arc_info = zero_length_arcs[note.start]
+                    if zero_arc_info['pointer_id'] == pointer_id:
+                        move_dx = zero_arc_info['end_x'] - zero_arc_info['start_x']
+                        move_dy = zero_arc_info['end_y'] - zero_arc_info['start_y']
+                        
+                        compensation_x = -move_dx * 0.1
+                        compensation_y = -move_dy * 0.1
+                        compensation_needed = True
+                        
+                        del zero_length_arcs[note.start]
+                
                 px, py, _ = note.easing.value(start, end, 0)
                 px, py = converter(px, py)
+                
                 ins(note.start, TouchEvent((round(px), round(py)), TouchAction.DOWN, pointer_id))
                 
-                # 链接两个挨得很近的arc（开始部分）
                 for tck in range(note.start - arc_search_range, note.start + arc_search_range + 1):
                     if tck not in result:
                         continue
@@ -123,7 +137,11 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                         continue
                     break
 
-                # 处理Arc上的tap
+                if compensation_needed:
+                    comp_px, comp_py = converter(note.start_x + compensation_x, note.start_y + compensation_y)
+                    ins(note.start + 5, TouchEvent((round(comp_px), round(comp_py)), TouchAction.MOVE, pointer_id))
+                    ins(note.start + 10, TouchEvent((round(px), round(py)), TouchAction.MOVE, pointer_id))
+
                 if note.taps:
                     for tap in note.taps:
                         t = (tap.tick - note.start) / delta
@@ -136,7 +154,6 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                         if current_arctap_id > 2000:
                             current_arctap_id = 1000
                 
-                # 添加移动点
                 sample_points = []
                 min_step = 10 
                 if delta > 100:
@@ -160,12 +177,10 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                     if tick != note.start:
                         ins(tick, TouchEvent((round(px), round(py)), TouchAction.MOVE, pointer_id))
                 
-                # 每个Arc结束后都发送UP事件
                 px, py, _ = note.easing.value(start, end, 1)
                 px, py = converter(px, py)
                 ins(note.end, TouchEvent((round(px), round(py)), TouchAction.UP, pointer_id))
                 
-                # 链接两个相邻的arc（结束部分）
                 for tck in range(note.end - arc_search_range, note.end + arc_search_range + 1):
                     if tck not in result:
                         continue
@@ -179,6 +194,20 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                         continue
                     break
         
+        elif isinstance(note, Arc) and note.start == note.end:
+            if note.trace_arc:
+                return
+                
+            pointer_id = note.color + 5
+            
+            zero_length_arcs[note.end] = {
+                'pointer_id': pointer_id,
+                'start_x': note.start_x,
+                'end_x': note.end_x,
+                'start_y': note.start_y,
+                'end_y': note.end_y
+            }
+            
         elif isinstance(note, Tap):
             note_x, note_y = -0.75 + note.track * 0.5, 0
             px, py = converter(note_x, note_y)
