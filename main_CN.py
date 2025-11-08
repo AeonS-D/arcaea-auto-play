@@ -194,14 +194,14 @@ def quick_edit_params(config):
 def incremented():
     global time_offset
     with time_lock:
-        time_offset += 0.05
-    print(f"[微调] 提前0.05秒，当前偏移: {time_offset:.3f}秒")
+        time_offset += 0.02
+    print(f"[微调] 提前0.02秒，当前偏移: {time_offset:.3f}秒")
 
 def decremented():
     global time_offset
     with time_lock:
-        time_offset -= 0.05
-    print(f"[微调] 延后0.05秒，当前偏移: {time_offset:.3f}秒")
+        time_offset -= 0.02
+    print(f"[微调] 延后0.02秒，当前偏移: {time_offset:.3f}秒")
 
 def reset_time_offset():
     global time_offset
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     config = load_config()
 
     print("="*40)
-    print("Arcaea自动打歌脚本 v2.3") 
+    print("Arcaea自动打歌脚本 v2.3.1") 
     print("="*40)
 
     quick_edit_params(config)

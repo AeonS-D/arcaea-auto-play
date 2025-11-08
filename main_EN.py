@@ -334,7 +334,7 @@ if __name__ == '__main__':
     config = load_config()
 
     print("="*40)
-    print("Arcaea Auto Play Script v2.3") 
+    print("Arcaea Auto Play Script v2.3.1") 
     print("="*40)
 
     quick_edit_params(config)
