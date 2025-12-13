@@ -76,6 +76,13 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
             x_rot = x_trans * math.cos(ay) + z_rot * math.sin(ay)
             
             return x_rot, y_rot
+       
+        def correct_arc_x(x):
+            original_range = 1.63 - (-0.63)
+            target_range = 1.5 - (-0.5)
+            scale = 1.0 / 1.36 
+            offset = 0.5 - 0.5 * scale           
+            return x * scale + offset
         
         anglex = group_properties.get('anglex', 0)
         angley = group_properties.get('angley', 0)
@@ -83,19 +90,22 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
         if isinstance(note, Arc):
             if note.start == note.end:
                 return
-                
-            start_x, start_y = rotate_point(note.start_x, note.start_y, anglex, angley)
-            end_x, end_y = rotate_point(note.end_x, note.end_y, anglex, angley)
             
-            start = (start_x, start_y, 1)
-            end = (end_x, end_y, 1)
+            corrected_start_x = correct_arc_x(note.start_x)
+            corrected_end_x = correct_arc_x(note.end_x)
+            
+            start_x, start_y = rotate_point(corrected_start_x, note.start_y, anglex, angley)
+            end_x, end_y = rotate_point(corrected_end_x, note.end_y, anglex, angley)
+            
+            start = (start_x , start_y / 1.6, 1)
+            end = (end_x , end_y / 1.6, 1)
             delta = note.end - note.start
             
             if note.trace_arc:
                 for tap in note.taps:
                     t = (tap.tick - note.start) / delta
                     px, py, _ = note.easing.value(start, end, t)
-                    px, py = converter(px, py)
+                    px, py = converter(px , py)
                     ins(tap.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, current_arctap_id))
                     ins(tap.tick + 2, TouchEvent((round(px), round(py)), TouchAction.UP, current_arctap_id))
                     current_arctap_id += 1
@@ -138,7 +148,8 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                     break
 
                 if compensation_needed:
-                    comp_px, comp_py = converter(note.start_x + compensation_x, note.start_y + compensation_y)
+                    comp_start_x = corrected_start_x + compensation_x
+                    comp_px, comp_py = converter(comp_start_x, note.start_y + compensation_y)
                     ins(note.start + 5, TouchEvent((round(comp_px), round(comp_py)), TouchAction.MOVE, pointer_id))
                     ins(note.start + 10, TouchEvent((round(px), round(py)), TouchAction.MOVE, pointer_id))
 
@@ -200,22 +211,25 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
                 
             pointer_id = note.color + 5
             
+            corrected_start_x = correct_arc_x(note.start_x)
+            corrected_end_x = correct_arc_x(note.end_x)
+            
             zero_length_arcs[note.end] = {
                 'pointer_id': pointer_id,
-                'start_x': note.start_x,
-                'end_x': note.end_x,
+                'start_x': corrected_start_x,
+                'end_x': corrected_end_x,
                 'start_y': note.start_y,
                 'end_y': note.end_y
             }
             
         elif isinstance(note, Tap):
-            note_x, note_y = -0.75 + note.track * 0.5, 0
+            note_x, note_y = (-0.5 + note.track * 0.5) / 1.5, 0
             px, py = converter(note_x, note_y)
             ins(note.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, note.track))
             ins(note.tick + 20, TouchEvent((round(px), round(py)), TouchAction.UP, note.track))
         
         elif isinstance(note, Hold):
-            note_x, note_y = -0.75 + note.track * 0.5, 0
+            note_x, note_y = (-0.5 + note.track * 0.5) / 1.5, 0
             px, py = converter(note_x, note_y)
             hold_pointer = note.track + 100 
             ins(note.start, TouchEvent((round(px), round(py)), TouchAction.DOWN, hold_pointer))

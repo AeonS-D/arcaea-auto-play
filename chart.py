@@ -2,6 +2,9 @@ from typing import Any, Union, List, Optional
 
 from easing import Easing
 
+# 全局变量，用于记录用户是否已经回答过蚂蚁异象的问题
+_designant_choice = None
+
 
 class ArcTap:
     tick: int
@@ -38,6 +41,8 @@ class Arc:  # 虹弧Arc & 天空Note
         _,
         trace_arc: Union[bool, str],
     ):
+        global _designant_choice
+        
         self.start = start
         self.end = end
         self.start_x = start_x
@@ -47,7 +52,23 @@ class Arc:  # 虹弧Arc & 天空Note
         self.end_y = end_y
         self.color = color
         
+        # 处理 "designant" 特殊情况
         if trace_arc == "designant":
+            # 只在第一次遇到时询问用户
+            if _designant_choice is None:
+                print("\n检测到谱面包含蚂蚁异象（Antialias）特有的弧线（designant）")
+                user_input = input("您是否在游玩蚂蚁异象？(y/n): ").strip().lower()
+                _designant_choice = (user_input == 'y')
+                if _designant_choice:
+                    print("已启用 designate 弧线追踪")
+                else:
+                    print("已禁用 designate 弧线追踪，将忽略所有 designate 弧线")
+            
+            # 如果用户选择 'n'，则抛出特殊异常来标记需要忽略此行
+            if not _designant_choice:
+                raise ValueError("IGNORE_DESIGNANT_LINE")
+            
+            # 如果用户选择 'y'，则正常处理
             self.trace_arc = True
         else:
             self.trace_arc = bool(trace_arc)
@@ -127,6 +148,10 @@ class Chart:
 
     @classmethod
     def loads(cls, content: str) -> 'Chart':
+        global _designant_choice
+        # 重置选择状态，确保每次加载新谱面时都会重新询问
+        _designant_choice = None
+        
         lines = content.splitlines()
         options = {}
         notes = []
@@ -238,6 +263,13 @@ class Chart:
                     if isinstance(note, tuple):
                         note = Tap(*note)
                     current_notes.append(note)
+                except ValueError as e:
+                    # 处理用户选择忽略 designate 行的情况
+                    if str(e) == "IGNORE_DESIGNANT_LINE":
+                        # 不输出提示，直接忽略这一行
+                        continue
+                    else:
+                        print(f"Error parsing line: {line}\n{str(e)}")
                 except Exception as e:
                     print(f"Error parsing line: {line}\n{str(e)}")
 
