@@ -53,11 +53,12 @@ This project is for learning and communication purposes only. Any disputes arisi
   
 
 ## Logs
-August 8, 2025, 1:28 AM, Mr. Otto successfully theoretically achieved BYD storm, congratulations, congratulations
+August 8, 2025, 1:28 AM, Mr. Auto successfully theoretically achieved BYD storm, congratulations, congratulations
 
 
 ![Screenshot_2025-08-08-01-28-57-496_moe inf arc 1](https://github.com/user-attachments/assets/d2f0e3dc-563f-410f-9f3a-28dcc7f93256)
 
-December 13, 2025, 5:22 PM, completed 6k mode production, Mr. Otto PM BYD TTF, the final piece of this script is complete, but due to minor issues, it will take some time to achieve theoretical
+December 13, 2025, 5:22 PM, completed 6k mode production, Mr. Auto PM BYD TTF, the final piece of this script is complete, but due to minor issues, it will take some time to achieve theoretical
+
 
 ![Screenshot_2025-12-13-16-30-36-228_moe inf arc](https://github.com/user-attachments/assets/200884e2-ede9-4c0b-8e9d-83db00fc46b9)
