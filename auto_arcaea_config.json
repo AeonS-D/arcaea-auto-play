@@ -16,8 +16,9 @@
       1872,
       1340
     ],
-    "chart_path": ""
+    "chart_path": "H:/BIN/\u5de5\u5177/arcaea/arcaea\u81ea\u52a8\u6253\u6b4c/beat/THE MESSAGE.aff",
+    "fine_tune_step": 10,
+    "designant_choice": true
   },
   "delay": 2.0
-
 }

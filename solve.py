@@ -209,18 +209,24 @@ def solve(chart: Chart, converter: CoordConv) -> dict[int, list[TouchEvent]]:
             }
             
         elif isinstance(note, Tap):
-            note_x, note_y = -0.75 + note.track * 0.5, 0
+            note_x = -0.75 + note.track * 0.5
+            offset_direction = (note_x - 0.5) / abs(note_x - 0.5)
+            note_x -= 0.1 * offset_direction
+            note_y = 0
             px, py = converter(note_x, note_y)
             ins(note.tick, TouchEvent((round(px), round(py)), TouchAction.DOWN, note.track))
             ins(note.tick + 20, TouchEvent((round(px), round(py)), TouchAction.UP, note.track))
-        
+
         elif isinstance(note, Hold):
-            note_x, note_y = -0.75 + note.track * 0.5, 0
+            note_x = -0.75 + note.track * 0.5
+            offset_direction = (note_x - 0.5) / abs(note_x - 0.5)
+            note_x -= 0.1 * offset_direction
+            note_y = 0
             px, py = converter(note_x, note_y)
             hold_pointer = note.track + 100 
             ins(note.start, TouchEvent((round(px), round(py)), TouchAction.DOWN, hold_pointer))
             ins(note.end, TouchEvent((round(px), round(py)), TouchAction.UP, hold_pointer))
-
+            
     def process_timing_group(group):
         group_properties = group.properties
         for note in group.notes:

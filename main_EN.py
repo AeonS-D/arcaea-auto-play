@@ -19,9 +19,9 @@ DEFAULT_CONFIG = {
         "top_left": (171, 300),
         "top_right": (2376, 300),
         "bottom_right": (2376, 1350),
-        "chart_path": ""
-    },
-    "delay": 2.0
+        "chart_path": "",
+        "fine_tune_step": 10,
+    }
 }
 
 time_offset = 0.0
@@ -41,32 +41,33 @@ def choose_aff_file():
     return file_path
 
 def extract_delay_from_aff(input_path):
+    """Traverse the entire chart to find the earliest note time as delay"""
     with open(input_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
     lines = content.split('\n')
-    delay = None
-
+    earliest_time = None
+    
     for line in lines:
         stripped_line = line.strip()
         
-        if stripped_line.startswith('hold(') and stripped_line.endswith(');'):
-            parts = stripped_line[5:-2].split(',')
-            if parts:
-                try:
-                    time_ms = int(parts[0])
-                    delay = -time_ms / 1000
-                    break
-                except (ValueError, IndexError):
-                    pass
-        
-        elif stripped_line.startswith('(') and stripped_line.endswith(');'):
+        if stripped_line.startswith('(') and stripped_line.endswith(');'):
             parts = stripped_line[1:-2].split(',')
             if parts:
                 try:
                     time_ms = int(parts[0])
-                    delay = -time_ms / 1000
-                    break
+                    if earliest_time is None or time_ms < earliest_time:
+                        earliest_time = time_ms
+                except (ValueError, IndexError):
+                    pass
+        
+        elif stripped_line.startswith('hold(') and stripped_line.endswith(');'):
+            parts = stripped_line[5:-2].split(',')
+            if parts:
+                try:
+                    time_ms = int(parts[0])
+                    if earliest_time is None or time_ms < earliest_time:
+                        earliest_time = time_ms
                 except (ValueError, IndexError):
                     pass
         
@@ -80,31 +81,26 @@ def extract_delay_from_aff(input_path):
                 if not skyline_boolean:
                     try:
                         time_ms = int(parts[0])
-                        delay = -time_ms / 1000
-                        break
+                        if earliest_time is None or time_ms < earliest_time:
+                            earliest_time = time_ms
                     except (ValueError, IndexError):
                         pass
-                else:
-                    arctap_match = re.search(r'\[arctap\((\d+)\)\]', stripped_line)
-                    if arctap_match:
-                        try:
-                            time_ms = int(arctap_match.group(1))
-                            delay = -time_ms / 1000
-                            break
-                        except ValueError:
-                            pass
         
         elif 'arctap(' in stripped_line:
             arctap_match = re.search(r'arctap\((\d+)\)', stripped_line)
             if arctap_match:
                 try:
                     time_ms = int(arctap_match.group(1))
-                    delay = -time_ms / 1000
-                    break
+                    if earliest_time is None or time_ms < earliest_time:
+                        earliest_time = time_ms
                 except ValueError:
                     pass
-      
-    return delay
+    
+    if earliest_time is not None:
+        delay = -earliest_time / 1000
+        return delay
+    else:
+        return None
 
 def flush_input():
     while msvcrt.kbhit():
@@ -124,32 +120,140 @@ def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
             loaded_config = json.load(f)
-            if "mode1" in loaded_config:
-                loaded_config["delay"] = loaded_config["mode1"]["delay"]
-                del loaded_config["mode1"]
-                if "current_mode" in loaded_config:
-                    del loaded_config["current_mode"]
-                save_config(loaded_config)
-            base_delay = loaded_config["delay"]
+            base_delay = 0.0
             return loaded_config
     except FileNotFoundError:
-        base_delay = DEFAULT_CONFIG["delay"]
+        base_delay = 0.0
         return DEFAULT_CONFIG
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         print(f"Failed to load config: {e}")
-        base_delay = DEFAULT_CONFIG["delay"]
+        base_delay = 0.0
         return DEFAULT_CONFIG
 
 def save_config(current_config):
     with open(CONFIG_FILE, "w") as f:
         json.dump(current_config, f, indent=2, default=lambda x: list(x) if isinstance(x, tuple) else x)
+        
+def check_designant_in_chart(chart_path):
+    if not chart_path or not Path(chart_path).exists():
+        return False
+    
+    try:
+        with open(chart_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            import re
+            return bool(re.search(r'arc\([^)]*designant[^)]*\)', content))
+    except:
+        return False
 
 def show_config(current_config):
     config_params = current_config["global"]
-    print("\nCurrent Config:")
-    print(f"Base Delay: {base_delay}s")
-    print(f"Chart Path: {config_params['chart_path']}")
+    chart_path = config_params.get("chart_path", "")
+    
+    print("\nCurrent Configuration:")
+    print(f"Chart Path: {chart_path}")
+    print(f"Fine-tune Step: {config_params.get('fine_tune_step', 10)} milliseconds")
+    
+    has_designant_in_chart = check_designant_in_chart(chart_path)
+    
+    if has_designant_in_chart:
+        print("\n[Designant Phenomenon Detection]")
+        print("Current chart contains notes specific to designant phenomenon")
+        
+        if 'designant_choice' in config_params:
+            designant_choice = config_params['designant_choice']
+            print(f"  *Designant Touch: {'Execute touch' if designant_choice else 'Do not execute touch'}")
+            print("To toggle designant touch, select [4] in parameter edit")
+        else:
+            print("Designant Touch: Not configured")
+            print("Will ask automatically on first play, or configure with [4] in parameter edit")
+    else:
+        pass
 
+def quick_edit_params(current_config):
+    chart_path = current_config["global"].get("chart_path", "")
+    has_designant_in_chart = check_designant_in_chart(chart_path)
+    
+    print("\nQuick Parameter Edit:")
+    print("[1] Edit Coordinates")
+    print("[2] Chart Path")
+    print("[3] Fine-tune Settings")
+    
+    if has_designant_in_chart:
+        print("[4] Configure designant touch")
+    
+    print("Press corresponding number key to edit, other keys to skip...")
+
+    key = wait_key(5)
+    
+    if key == '1':
+        print("\nPlease set four coordinates in order (press Enter to keep current value)")
+        current_config["global"]["bottom_left"] = input_coord("Bottom track left coordinate (x,y)", current_config["global"]["bottom_left"])
+        current_config["global"]["top_left"] = input_coord("Skyline left coordinate (x,y)", current_config["global"]["top_left"])
+        current_config["global"]["top_right"] = input_coord("Skyline right coordinate (x,y)", current_config["global"]["top_right"])
+        current_config["global"]["bottom_right"] = input_coord("Bottom track right coordinate (x,y)", current_config["global"]["bottom_right"])
+        save_config(current_config)
+        print("Coordinates updated!")
+    elif key == '2':
+        new_path = choose_aff_file()
+        if new_path:
+            current_config["global"]["chart_path"] = new_path
+            save_config(current_config)
+            print(f"Chart path updated to: {new_path}")
+            has_designant_in_chart = check_designant_in_chart(new_path)
+            if has_designant_in_chart:
+                print("Detected new chart contains notes specific to designant phenomenon")
+        else:
+            print("No file selected, keeping original value")
+    elif key == '3':
+        print("\nCurrent fine-tune step: {} milliseconds".format(current_config["global"].get("fine_tune_step", 10)))
+        try:
+            flush_input()
+            new_step = input("Enter new fine-tune step (milliseconds, integer): ").strip()
+            if new_step:
+                new_step_int = int(new_step)
+                if new_step_int > 0:
+                    current_config["global"]["fine_tune_step"] = new_step_int
+                    save_config(current_config)
+                    print(f"Fine-tune step updated to: {new_step_int} milliseconds")
+                else:
+                    print("Step must be positive integer, update failed.")
+            else:
+                print("No input, keeping original value.")
+        except ValueError:
+            print("Invalid input, must be integer.")
+    elif key == '4' and has_designant_in_chart:
+        config_params = current_config["global"]
+        
+        if 'designant_choice' in config_params:
+            current_choice = config_params['designant_choice']
+            new_choice = not current_choice
+            config_params['designant_choice'] = new_choice
+            status = "Enabled" if new_choice else "Disabled"
+            print(f"Designant touch toggled to: {status}")
+            
+            if new_choice:
+                print("  * Note: Designant mode enabled, will process special designant notes")
+            else:
+                print("  * Note: Designant mode disabled, will ignore all designant notes")
+        else:
+            print("\nDetected chart contains notes specific to designant phenomenon")
+            print("Are you playing designant?")
+            print("  y - Yes, enable designant mode (process all notes)")
+            print("  n - No, disable designant mode (ignore designant notes)")
+            
+            flush_input()
+            user_input = input("Please choose (y/n): ").strip().lower()
+            designant_choice = (user_input == 'y')
+            config_params['designant_choice'] = designant_choice
+            
+            if designant_choice:
+                print("Designant mode enabled")
+            else:
+                print("Designant mode disabled, will ignore all designant notes")
+        
+        save_config(current_config)
+        
 def input_coord(prompt, default):
     while True:
         try:
@@ -163,67 +267,29 @@ def input_coord(prompt, default):
         except (ValueError, IndexError):
             print("Format error! Press Enter to use current value or re-enter")
 
-def quick_edit_params(current_config):
-    global base_delay
-    
-    print("\nQuick Parameter Edit:")
-    print("[1] Edit Coordinates")
-    print("[2] Chart Path")
-    print("[3] Base Delay")
-    print("Press the corresponding number key to edit, other keys to skip...")
-
-    key = wait_key(5)
-    
-    if key == '1':
-        print("\nPlease set the four coordinates in order (press Enter to keep current value)")
-        current_config["global"]["bottom_left"] = input_coord("Bottom Track Left (x,y)", current_config["global"]["bottom_left"])
-        current_config["global"]["top_left"] = input_coord("Sky Line Left (x,y)", current_config["global"]["top_left"])
-        current_config["global"]["top_right"] = input_coord("Sky Line Right (x,y)", current_config["global"]["top_right"])
-        current_config["global"]["bottom_right"] = input_coord("Bottom Track Right (x,y)", current_config["global"]["bottom_right"])
-        save_config(current_config)
-        print("Coordinates updated!")
-    elif key == '2':
-        new_path = choose_aff_file()
-        if new_path:
-            current_config["global"]["chart_path"] = new_path
-            save_config(current_config)
-            print(f"Chart path updated to: {new_path}")
-        else:
-            print("No file selected, keeping original value")
-    elif key == '3':
-        try:
-            flush_input()
-            print(f"Current base delay: {base_delay}s")
-            print("Enter new delay value (seconds): ", end="", flush=True)
-            raw = input().strip()
-            if raw:
-                new_delay = float(raw)
-                current_config["delay"] = new_delay
-                base_delay = new_delay
-                save_config(current_config)
-                print(f"Delay updated to: {new_delay}s")
-        except ValueError:
-            print("Invalid input, keeping original value")
-
-def incremented():
+def incremented(current_config):
     global time_offset
+    step_ms = current_config["global"].get("fine_tune_step", 10)
+    step_seconds = step_ms / 1000.0
     with time_lock:
-        time_offset += 0.01 # Modify delay value here, unit: ms
-    print(f"[Fine-tune] Advance 0.01s, current offset: {time_offset:.3f}s")
+        time_offset += step_seconds
+    print(f"[Fine-tune] Advance {step_ms} milliseconds, current offset: {time_offset:.3f} seconds")
 
-def decremented():
+def decremented(current_config):
     global time_offset
+    step_ms = current_config["global"].get("fine_tune_step", 10)
+    step_seconds = step_ms / 1000.0
     with time_lock:
-        time_offset -= 0.01 # Modify delay value here, unit: ms
-    print(f"[Fine-tune] Delay 0.01s, current offset: {time_offset:.3f}s")
+        time_offset -= step_seconds
+    print(f"[Fine-tune] Delay {step_ms} milliseconds, current offset: {time_offset:.3f} seconds")
 
 def reset_time_offset():
     global time_offset
     with time_lock:
         time_offset = 0.0
-    print(f"[Fine-tune] Offset reset: {time_offset:.3f}s")
+    print(f"[Fine-tune] Offset reset: {time_offset:.3f} seconds")
 
-def start_input_listener():
+def start_input_listener(current_config):
     def input_listener():
         global input_listener_active, automation_started
         while input_listener_active:
@@ -235,9 +301,9 @@ def start_input_listener():
                 user_input = input().strip().lower()
                 
                 if user_input == '+':
-                    incremented()
+                    incremented(current_config)
                 elif user_input == '-':
-                    decremented()
+                    decremented(current_config)
                 elif user_input == '0':
                     reset_time_offset()
                 else:
@@ -267,51 +333,48 @@ def run_automation_with_6k(current_config):
     try:
         with open(chart_path, 'r', encoding='utf-8') as f:
             chart_content = f.read()
+            
+        chart_content_for_regex = chart_content
+        lines = chart_content.split('\n')
+        filtered_lines = []
+        for line in lines:
+            stripped_line = line.strip()
+            if stripped_line.lower().startswith('scenecontrol'):
+                continue
+            filtered_lines.append(line)
+        chart_content_for_load = '\n'.join(filtered_lines)
         
         sixk_manager = SixKModeManager()
-        camera_intervals, lanes_intervals = sixk_manager.analyze_chart_for_6k(chart_content)
+        chart = Chart.loads(chart_content_for_load)
+        camera_intervals, lanes_intervals, max_time = sixk_manager.analyze_chart_for_6k(chart_content_for_regex, chart)
         
         delay = extract_delay_from_aff(chart_path)
         if delay is not None:
-            current_config['delay'] = delay
-            print(f"Delay adjusted based on AFF file: {delay}s")
+            base_delay = delay
+            print(f"\nDelay adjusted to: {delay} seconds")
         else:
-            print("Warning: No valid initial delay found, using config value")
+            print("Error: No valid note times found, cannot determine delay!")
+            print("Please check if chart file contains valid notes")
+            return
     except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
         print(f"File processing failed: {e}")
         return
+    except Exception as e:
+        print(f"Chart loading failed: {e}")
+        return
 
-    base_delay = current_config["delay"]
     time_offset = 0.0
     
     print("\n" + "="*40)
     print(f"Current base delay: {base_delay}s")
-    
-    if camera_intervals or lanes_intervals:
-        if camera_intervals:
-            for i, (start, end) in enumerate(camera_intervals):
-                start_sec = start / 1000
-                end_sec = end / 1000
-        
-        if lanes_intervals:
-            for i, (start, end) in enumerate(lanes_intervals):
-                start_sec = start / 1000
-                end_sec = end / 1000
-    else:
-        print("")
+    print(f"Current fine-tune step: {current_config['global'].get('fine_tune_step', 10)} milliseconds")
     
     print("Fine-tuning control:")
-    print("  Enter + then Enter: Advance 0.01s")
-    print("  Enter - then Enter: Delay 0.01s") 
+    print(f"  Enter + then Enter: Advance {current_config['global'].get('fine_tune_step', 10)} milliseconds")
+    print(f"  Enter - then Enter: Delay {current_config['global'].get('fine_tune_step', 10)} milliseconds") 
     print("  Enter 0 then Enter: Reset fine-tuning offset")
     print("="*40)
     show_config(current_config)
-    
-    try:
-        chart = Chart.loads(chart_content)
-    except (FileNotFoundError, PermissionError, ValueError) as e:
-        print(f"Failed to load chart: {e}")
-        return
 
     conv = CoordConv(current_config["global"]["bottom_left"], 
                    current_config["global"]["top_left"],
@@ -321,35 +384,7 @@ def run_automation_with_6k(current_config):
     from sixk_solve import solve as solve_6k
     from solve import solve as solve_4k
     
-    all_events = {}
-    
-    if camera_intervals or lanes_intervals:
-        note_groups = sixk_manager.split_chart_by_note_type(chart)
-        
-        for group_name, notes in note_groups.items():
-            if not notes:
-                continue
-                
-            mode = '6k' if '6k' in group_name else '4k'
-            note_type = group_name.split('_')[0]
-            
-            # Create sub-chart
-            segment_chart = Chart(notes, chart.options)
-            
-            if mode == '6k':
-                # Use 6k solving
-                segment_events = solve_6k(segment_chart, conv)
-            else:
-                # Use 4k solving
-                segment_events = solve_4k(segment_chart, conv)
-            
-            # Merge events
-            for time_ms, events in segment_events.items():
-                if time_ms not in all_events:
-                    all_events[time_ms] = []
-                all_events[time_ms].extend(events)
-    else:
-        all_events = solve_4k(chart, conv)
+    all_events = sixk_manager.split_and_solve_chart(chart, conv, solve_4k, solve_6k)
     
     if not all_events:
         print("\n[Error] No touch events generated")
@@ -372,7 +407,9 @@ def run_automation_with_6k(current_config):
     ctl = DeviceController(server_dir='.')
     
     input_listener_active = True
-    start_input_listener()
+    start_input_listener(current_config)
+    
+    designant_choice = current_config["global"].get("designant_choice")
     
     print("\nReady, press Enter twice to start...")
     flush_input()
@@ -415,7 +452,7 @@ def main():
     main_config = load_config()
 
     print("="*40)
-    print("Arcaea Auto Play Script v3.0.0") 
+    print("Arcaea Auto Play Script v3.1.0") 
     print("="*40)
     
     if "chart_path" not in main_config["global"] or not main_config["global"]["chart_path"]:

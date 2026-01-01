@@ -38,15 +38,17 @@ https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 
     https://github.com/Genymobile/scrcpy/releases/
 
-   + 4，安装Android debug bridge，并配置好相应环境
+   + 4.安装Android debug bridge，并配置好相应环境
 
    + 5.配置文件中为小米平板5的各项参数，理论上来说为11寸平板通用
 
    + 6.win11下，使用windows powershell可能会导致一些奇奇怪怪的bug，请更换默认控制台cmd使用脚本
 
-   + 6.5 并不打算再增加愚人节谱面的支持，之前试过，效果不尽人意
+   + 6.5.并不打算再增加愚人节谱面的支持，尝试过，效果不尽人意
+   
+   + 7.如果出现arc头部夹着note或者hold（反之亦然）并且执行操作时会使arc断触，只需要微调延迟至note判定为pure（early）即可
 
-   + 7.关于各个点的坐标如下：
+   + 8.关于各个点的坐标如下：
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
 
    
