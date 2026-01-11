@@ -1,6 +1,10 @@
 ARCAEA自动游玩项目，代码源于arcaea-sap
 可以在arcaea的全量安装包中提取aff文件
 
+期末将近，没多少时间修bug，可能会拖到寒再更新
+
+注：3.1版本存在些许bug（详情见issue），如果觉得影响使用就退回3.0版本
+
 Click here to switch English
 https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
 
