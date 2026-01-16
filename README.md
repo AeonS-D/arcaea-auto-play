@@ -52,7 +52,9 @@ https://github.com/AeonS-D/arcaea-auto-play/blob/main/README_EN.md
    
    + 7.如果出现arc头部夹着note或者hold（反之亦然）并且执行操作时会使arc断触，只需要微调延迟至note判定为pure（early）即可
 
-   + 8.关于各个点的坐标如下：
+   + 8.当出现t1等于t2，即间隔为零的直角蛇的时候，脚本可能会由于类似“惯性”的东西额外滑动一段距离，导致断触，正在尝试修复中…(已经修了三个大版本的说)
+
+   + 9.关于各个点的坐标如下：
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
 
    
