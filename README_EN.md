@@ -1,6 +1,10 @@
 ARCAEA Auto Play Project, code originally from arcaea-sap
 AFF files can be extracted from the full installation package of arcaea
 
+The end of the semester is approaching, and there isn't much time left to fix bugs. Updates might be postponed until the winter vacation.
+
+Note: Version 3.1 has some minor bugs (details can be found in the issues adn readme). If they affect your experience, please consider reverting to Version 3.0.
+
 Click here to switch to Chinese
 https://github.com/AeonS-D/arcaea-auto-play/blob/main/README.md
 
@@ -44,7 +48,9 @@ This project is for learning and communication purposes only. Any disputes arisi
    
    + 7. If notes or holds appear embedded in the head of arcs (or vice versa) and cause arc breaks during execution, simply fine-tune the delay until notes are judged as pure (early)
 
-   + 8. About coordinate points:
+   + 8.When t1 equals t2, which represents a right-angle arc with an interval of zero, the script may slide an extra distance due to something resembling "inertia," resulting in a touch interruption. Attempts are being made to fix this... (three major versions have already been updated for fixes).
+
+   + 9. About coordinate points:
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
 
 ## About Future Features:
