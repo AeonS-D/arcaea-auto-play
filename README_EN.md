@@ -49,7 +49,7 @@ This project is for learning and communication purposes only. Any disputes arisi
 
    + 9.In qualia byd, there exist two untouchable arctaps. The cause has not yet been identified. Please perform these two arctaps manually if you intend to play this chart.
 
-   + 10.According to ArcWiki, special red sky notes appear in the Designant anomaly charts, with some exceeding the trapezoid boundary. Therefore, the script may fail to touch some arctaps during operation.
+   + 10.According to ArcWiki, special red arctap appear in the Designant anomaly charts, with some exceeding the trapezoid boundary. Therefore, the script may fail to touch some arctaps during operation.
 
    + 11. About coordinate points:
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
@@ -74,4 +74,5 @@ December 13, 2025, 5:22 PM, completed 6k mode production, Mr. Auto PM BYD TTF, t
  February 7, 2026, Mr. Otto's theory byd ttf, global rank #19 (just kidding)
 
 ![Screenshot_2026-02-07-22-23-01-702_moe inf arc](https://github.com/user-attachments/assets/06f4bc28-c42e-447c-a0e4-3c269a224b02)
+
 
