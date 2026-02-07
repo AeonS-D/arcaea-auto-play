@@ -1,9 +1,6 @@
 ARCAEA Auto Play Project, code originally from arcaea-sap
 AFF files can be extracted from the full installation package of arcaea
 
-The end of the semester is approaching, and there isn't much time left to fix bugs. Updates might be postponed until the winter vacation.
-
-Note: Version 3.1 has some minor bugs (details can be found in the issues adn readme). If they affect your experience, please consider reverting to Version 3.0.
 
 Click here to switch to Chinese
 https://github.com/AeonS-D/arcaea-auto-play/blob/main/README.md
@@ -50,7 +47,11 @@ This project is for learning and communication purposes only. Any disputes arisi
 
    + 8.When t1 equals t2, which represents a right-angle arc with an interval of zero, the script may slide an extra distance due to something resembling "inertia," resulting in a touch interruption. Attempts are being made to fix this... (three major versions have already been updated for fixes).
 
-   + 9. About coordinate points:
+   + 9.In qualia byd, there exist two untouchable arctaps. The cause has not yet been identified. Please perform these two arctaps manually if you intend to play this chart.
+
+   + 10.According to ArcWiki, special red sky notes appear in the Designant anomaly charts, with some exceeding the trapezoid boundary. Therefore, the script may fail to touch some arctaps during operation.
+
+   + 11. About coordinate points:
    ![413854432-ea62cdad-0c67-4c66-b3fc-aaebe0772622](https://github.com/user-attachments/assets/b1c6e676-9016-4349-a4bf-f14583dae300)
 
 ## About Future Features:
@@ -68,3 +69,9 @@ December 13, 2025, 5:22 PM, completed 6k mode production, Mr. Auto PM BYD TTF, t
 
 
 ![Screenshot_2025-12-13-16-30-36-228_moe inf arc](https://github.com/user-attachments/assets/200884e2-ede9-4c0b-8e9d-83db00fc46b9)
+
+
+ February 7, 2026, Mr. Otto's theory byd ttf, global rank #19 (just kidding)
+
+![Screenshot_2026-02-07-22-23-01-702_moe inf arc](https://github.com/user-attachments/assets/06f4bc28-c42e-447c-a0e4-3c269a224b02)
+
